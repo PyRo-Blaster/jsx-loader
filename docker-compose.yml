@@ -1,0 +1,9 @@
+services:
+  jsx-loader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jsx-loader-web
+    ports:
+      - "8008:80"
+    restart: unless-stopped

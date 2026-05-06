@@ -42,4 +42,17 @@ describe('compileJSX', () => {
     const result = compileJSX(source)
     expect(result).toContain('require("recharts")')
   })
+
+  it('still compiles react default plus named imports after preflight support is added', () => {
+    const source = `
+      import React, { useMemo } from "react";
+      export default function Demo() {
+        const value = useMemo(() => 2, [])
+        return <div>{value}</div>
+      }
+    `
+
+    const result = compileJSX(source)
+    expect(result).toContain('useMemo')
+  })
 })

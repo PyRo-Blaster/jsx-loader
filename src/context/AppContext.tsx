@@ -12,6 +12,10 @@ import type { ComponentType } from 'react'
 import { compileJSX } from '../services/compiler'
 import { runComponent } from '../services/runner'
 import {
+  analyzeJSXSource,
+  type JSXPreflightIssue,
+} from '../services/preflight'
+import {
   deleteAsset,
   getAllAssets,
   getAsset,
@@ -26,6 +30,7 @@ type AppContextValue = {
   loadedComponent: ComponentType | null
   hudExpanded: boolean
   error: string | null
+  preflightIssues: JSXPreflightIssue[]
   uploadAsset: (file: File) => Promise<void>
   saveAssetContent: (name: string, content: string) => Promise<string>
   loadAsset: (assetId: string) => Promise<void>
@@ -33,6 +38,7 @@ type AppContextValue = {
   removeAsset: (assetId: string) => Promise<void>
   setHudExpanded: (expanded: boolean) => void
   clearError: () => void
+  clearPreflightIssues: () => void
   reportError: (message: string) => void
 }
 
@@ -44,6 +50,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loadedComponent, setLoadedComponent] = useState<ComponentType | null>(null)
   const [hudExpanded, setHudExpanded] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [preflightIssues, setPreflightIssues] = useState<JSXPreflightIssue[]>([])
 
   const refreshAssets = useCallback(async () => {
     const rows = await getAllAssets()
@@ -56,6 +63,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearError = useCallback(() => {
     setError(null)
+  }, [])
+
+  const clearPreflightIssues = useCallback(() => {
+    setPreflightIssues([])
   }, [])
 
   const reportError = useCallback((message: string) => {
@@ -114,6 +125,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw new Error('Asset not found.')
       }
 
+      const report = analyzeJSXSource(asset.content)
+      setPreflightIssues(report.issues)
+
+      const blockingIssues = report.issues.filter(
+        (issue) => issue.severity === 'error',
+      )
+
+      if (blockingIssues.length > 0) {
+        throw new Error(
+          `Preflight failed: ${blockingIssues.map((issue) => issue.message).join(' ')}`,
+        )
+      }
+
       const compiled = compileJSX(asset.content)
       const component = runComponent(compiled)
 
@@ -131,6 +155,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setLoadedComponent(null)
     setHudExpanded(true)
     setError(null)
+    setPreflightIssues([])
   }, [])
 
   const removeAsset = useCallback(
@@ -151,6 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadedComponent,
       hudExpanded,
       error,
+      preflightIssues,
       uploadAsset,
       saveAssetContent,
       loadAsset,
@@ -158,6 +184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeAsset,
       setHudExpanded,
       clearError,
+      clearPreflightIssues,
       reportError,
     }),
     [
@@ -166,12 +193,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadedComponent,
       hudExpanded,
       error,
+      preflightIssues,
       uploadAsset,
       saveAssetContent,
       loadAsset,
       unloadAsset,
       removeAsset,
       clearError,
+      clearPreflightIssues,
       reportError,
     ],
   )

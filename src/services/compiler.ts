@@ -34,6 +34,13 @@ function normalizeNamedImports(specifierBlock: string): string {
   return `{ ${mapped.join(', ')} }`
 }
 
+function isInjectedReactDefaultImport(
+  moduleName: string,
+  defaultName: string,
+): boolean {
+  return moduleName === 'react' && defaultName === 'React'
+}
+
 function normalizeModuleImports(code: string): string {
   const withFromImports = code.replace(
     /import\s+([^;]+?)\s+from\s+['"]([^'"]+)['"]\s*;?/g,
@@ -57,15 +64,24 @@ function normalizeModuleImports(code: string): string {
         const defaultName = defaultAndNamed[1]
         const rest = defaultAndNamed[2]
         if (rest.startsWith('{')) {
+          if (isInjectedReactDefaultImport(moduleName, defaultName)) {
+            return `const ${normalizeNamedImports(rest)} = React;`
+          }
           return `const ${defaultName} = require("${moduleName}"); const ${normalizeNamedImports(rest)} = ${defaultName};`
         }
         const nsMatch = rest.match(/^\*\s+as\s+([A-Za-z_$][\w$]*)$/)
         if (nsMatch) {
+          if (isInjectedReactDefaultImport(moduleName, defaultName)) {
+            return `const ${nsMatch[1]} = React;`
+          }
           return `const ${defaultName} = require("${moduleName}"); const ${nsMatch[1]} = ${defaultName};`
         }
       }
 
       if (/^[A-Za-z_$][\w$]*$/.test(specifiers)) {
+        if (isInjectedReactDefaultImport(moduleName, specifiers)) {
+          return ''
+        }
         return `const ${specifiers} = require("${moduleName}");`
       }
 

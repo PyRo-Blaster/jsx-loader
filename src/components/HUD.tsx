@@ -10,6 +10,7 @@ export function HUD() {
     loadedAssetId,
     hudExpanded,
     error,
+    preflightIssues,
     setHudExpanded,
     uploadAsset,
     saveAssetContent,
@@ -17,6 +18,7 @@ export function HUD() {
     unloadAsset,
     removeAsset,
     clearError,
+    clearPreflightIssues,
   } = useAppContext()
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -79,6 +81,28 @@ export function HUD() {
                       <X size={14} />
                     </button>
                   </div>
+                </div>
+              ) : null}
+
+              {preflightIssues.some((issue) => issue.severity === 'warning') ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="font-medium">Preflight warnings</span>
+                    <button
+                      type="button"
+                      onClick={clearPreflightIssues}
+                      className="text-amber-600 hover:text-amber-800"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <ul className="space-y-1">
+                    {preflightIssues
+                      .filter((issue) => issue.severity === 'warning')
+                      .map((issue) => (
+                        <li key={issue.code}>- {issue.message}</li>
+                      ))}
+                  </ul>
                 </div>
               ) : null}
 

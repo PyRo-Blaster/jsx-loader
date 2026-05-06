@@ -19,6 +19,10 @@ export function resolveRuntimeModule(name: string): unknown | undefined {
   return runtimeModules.get(name)
 }
 
+export function hasRuntimeModule(name: string): boolean {
+  return runtimeModules.has(name)
+}
+
 export function listSupportedRuntimeModules(): string[] {
   return Array.from(runtimeModules.keys()).sort()
 }

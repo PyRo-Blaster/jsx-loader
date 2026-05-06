@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { compileJSX } from '../compiler'
 import { runComponent } from '../runner'
 import { registerRuntimeModule, unregisterRuntimeModule } from '../moduleRegistry'
 
@@ -54,5 +55,23 @@ describe('runComponent', () => {
     expect(screen.getByText('42')).toBeInTheDocument()
 
     unregisterRuntimeModule('mock-lib')
+  })
+
+  it('supports default plus named react imports without redeclaring React', () => {
+    const source = `
+      import React, { useMemo, useState } from "react";
+      export default function Demo() {
+        const [count] = useState(1);
+        const doubled = useMemo(() => count * 2, [count]);
+        return <div>{doubled}</div>;
+      }
+    `
+
+    const compiledCode = compileJSX(source)
+    const Component = runComponent(compiledCode)
+
+    render(React.createElement(Component))
+
+    expect(screen.getByText('2')).toBeInTheDocument()
   })
 })
